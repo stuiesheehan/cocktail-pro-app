@@ -213,15 +213,11 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
       totalCost += (ing?.unitCost || 4) * (mixer.amount / 750);
     });
 
-    const dilutionFactors = { 'Shake': 0.25, 'Stir': 0.20, 'Build': 0.10, 'Muddle': 0.15, 'Blend': 0.30, 'Layer': 0.05 };
-    const dilution = totalVolume * (dilutionFactors[recipe.technique] || 0.2);
-    const finalVolume = totalVolume + dilution;
-    const finalABV = totalVolume > 0 ? (totalAlcohol / finalVolume) * 100 : 0;
+    const abv = totalVolume > 0 ? (totalAlcohol / totalVolume) * 100 : 0;
 
     return {
       totalVolume: Math.round(totalVolume),
-      finalVolume: Math.round(finalVolume),
-      abv: Math.round(finalABV * 10) / 10,
+      abv: Math.round(abv * 10) / 10,
       costPerDrink: Math.round(totalCost * 100) / 100,
       suggestedPrice: Math.round(totalCost * 3.5 * 100) / 100,
     };
@@ -973,7 +969,7 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
             <div className="p-4 rounded-xl" style={{ backgroundColor: `${GOLD}10`, border: `1px solid ${GOLD}30` }}>
               <h4 className="text-lg font-light mb-4" style={{ color: GOLD }}>{recipe.name || 'Your Creation'}</h4>
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-white/40">Volume:</span><span className="text-white ml-2">{calculations.finalVolume}ml</span></div>
+                <div><span className="text-white/40">Volume:</span><span className="text-white ml-2">{calculations.totalVolume}ml</span></div>
                 <div><span className="text-white/40">ABV:</span><span className="text-white ml-2">{calculations.abv}%</span></div>
                 <div><span className="text-white/40">Cost:</span><span className="text-white ml-2">&euro;{calculations.costPerDrink}</span></div>
                 <div><span className="text-white/40">Price:</span><span className="text-white ml-2" style={{ color: GOLD }}>&euro;{calculations.suggestedPrice}</span></div>
@@ -992,7 +988,7 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
           <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-1">
             <div className="text-center">
               <span className="text-xs text-white/40 block">Volume</span>
-              <span className="text-sm font-bold text-white">{calculations.finalVolume}ml</span>
+              <span className="text-sm font-bold text-white">{calculations.totalVolume}ml</span>
             </div>
             <div className="text-center">
               <span className="text-xs text-white/40 block">ABV</span>
