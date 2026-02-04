@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { X, Camera, Search } from 'lucide-react';
+import { X, Camera, Search, ChevronDown } from 'lucide-react';
 import { GOLD, DARK_BG, TECHNIQUE_ICONS } from '../../data/constants';
 import {
   FLAVOR_AXES, BITTER_INGREDIENTS, BOTANICAL_INGREDIENTS,
@@ -68,6 +68,7 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
   const [photoData, setPhotoData] = useState(null);
   const [ingredientSearch, setIngredientSearch] = useState('');
   const [modifierFilter, setModifierFilter] = useState('all');
+  const [showSelections, setShowSelections] = useState(false);
   const fileInputRef = useRef(null);
 
   const searchFilter = (item) => !ingredientSearch || item.name.toLowerCase().includes(ingredientSearch.toLowerCase());
@@ -368,15 +369,15 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
   const summaryItems = useMemo(() => {
     const items = [];
     if (recipe.baseSpirits.length > 0)
-      items.push({ label: 'Base', value: recipe.baseSpirits.map(s => s.name).join(', ') });
+      items.push({ label: 'Base', value: recipe.baseSpirits.map(s => `${s.name} ${s.amount}ml`).join(', ') });
     if (recipe.modifiers.length > 0)
-      items.push({ label: 'Modifiers', value: recipe.modifiers.map(m => m.name).join(', ') });
+      items.push({ label: 'Modifiers', value: recipe.modifiers.map(m => `${m.name} ${m.amount}ml`).join(', ') });
     if (recipe.acids.length > 0)
-      items.push({ label: 'Citrus', value: recipe.acids.map(a => a.name).join(', ') });
+      items.push({ label: 'Citrus', value: recipe.acids.map(a => `${a.name} ${a.amount}ml`).join(', ') });
     if (recipe.sweeteners.length > 0)
-      items.push({ label: 'Sweet', value: recipe.sweeteners.map(s => s.name).join(', ') });
+      items.push({ label: 'Sweet', value: recipe.sweeteners.map(s => `${s.name} ${s.amount}ml`).join(', ') });
     if (recipe.mixers.length > 0)
-      items.push({ label: 'Mixers', value: recipe.mixers.map(m => m.name).join(', ') });
+      items.push({ label: 'Mixers', value: recipe.mixers.map(m => `${m.name} ${m.amount}ml`).join(', ') });
     if (recipe.garnishes.length > 0)
       items.push({ label: 'Garnish', value: recipe.garnishes.join(', ') });
     return items;
@@ -567,11 +568,12 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
         ))}
       </div>
 
-      {/* Selection Summary */}
+      {/* Selection Summary (tap to expand and edit amounts) */}
       {summaryItems.length > 0 && (
         <div className="px-4 pb-2">
-          <div
-            className="flex gap-3 overflow-x-auto py-2 px-3 rounded-lg"
+          <button
+            onClick={() => setShowSelections(!showSelections)}
+            className="w-full rounded-lg transition-all active:scale-[0.99]"
             style={{
               backgroundColor: 'rgba(255,255,255,0.04)',
               backdropFilter: 'blur(10px)',
@@ -579,16 +581,84 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
               border: '1px solid rgba(255,255,255,0.08)',
             }}
           >
-            {summaryItems.map((item, i) => (
-              <React.Fragment key={i}>
-                {i > 0 && <span className="text-white/20">|</span>}
-                <span className="flex items-center gap-1 text-xs whitespace-nowrap">
-                  <span className="font-medium" style={{ color: GOLD }}>{item.label}:</span>
-                  <span style={{ color: 'rgba(255,255,255,0.7)' }}>{item.value}</span>
-                </span>
-              </React.Fragment>
-            ))}
-          </div>
+            <div className="flex items-center py-2 px-3">
+              <div className="flex gap-3 flex-1 overflow-x-auto">
+                {summaryItems.map((item, i) => (
+                  <React.Fragment key={i}>
+                    {i > 0 && <span className="text-white/20">|</span>}
+                    <span className="flex items-center gap-1 text-xs whitespace-nowrap">
+                      <span className="font-medium" style={{ color: GOLD }}>{item.label}:</span>
+                      <span style={{ color: 'rgba(255,255,255,0.7)' }}>{item.value}</span>
+                    </span>
+                  </React.Fragment>
+                ))}
+              </div>
+              <ChevronDown className={`w-4 h-4 flex-shrink-0 ml-2 text-white/40 transition-transform duration-200 ${showSelections ? 'rotate-180' : ''}`} />
+            </div>
+          </button>
+
+          {/* Expanded: editable amounts for all selections */}
+          {showSelections && (
+            <div
+              className="mt-2 p-3 rounded-lg space-y-3"
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.04)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}
+            >
+              {recipe.baseSpirits.length > 0 && (
+                <div>
+                  <p className="text-xs uppercase tracking-wider mb-2" style={{ color: GOLD }}>Base Spirits</p>
+                  {renderSelectedList(recipe.baseSpirits, 'baseSpirits')}
+                </div>
+              )}
+              {recipe.modifiers.length > 0 && (
+                <div>
+                  <p className="text-xs uppercase tracking-wider mb-2" style={{ color: GOLD }}>Modifiers</p>
+                  {renderSelectedList(recipe.modifiers, 'modifiers')}
+                </div>
+              )}
+              {recipe.acids.length > 0 && (
+                <div>
+                  <p className="text-xs uppercase tracking-wider mb-2" style={{ color: GOLD }}>Citrus</p>
+                  {renderSelectedList(recipe.acids, 'acids')}
+                </div>
+              )}
+              {recipe.sweeteners.length > 0 && (
+                <div>
+                  <p className="text-xs uppercase tracking-wider mb-2" style={{ color: GOLD }}>Sweeteners</p>
+                  {renderSelectedList(recipe.sweeteners, 'sweeteners')}
+                </div>
+              )}
+              {recipe.mixers.length > 0 && (
+                <div>
+                  <p className="text-xs uppercase tracking-wider mb-2" style={{ color: GOLD }}>Mixers</p>
+                  {renderSelectedList(recipe.mixers, 'mixers')}
+                </div>
+              )}
+              {recipe.garnishes.length > 0 && (
+                <div>
+                  <p className="text-xs uppercase tracking-wider mb-2" style={{ color: GOLD }}>Garnishes</p>
+                  <div className="flex flex-wrap gap-2">
+                    {recipe.garnishes.map(g => (
+                      <span
+                        key={g}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs"
+                        style={{ backgroundColor: `${GOLD}20`, border: `1px solid ${GOLD}40`, color: 'rgba(255,255,255,0.8)' }}
+                      >
+                        {g}
+                        <button onClick={() => setRecipe(prev => ({ ...prev, garnishes: prev.garnishes.filter(n => n !== g) }))}>
+                          <X className="w-3 h-3 text-white/40" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
