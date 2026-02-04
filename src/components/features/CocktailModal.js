@@ -1,11 +1,37 @@
 import React, { useState } from 'react';
 import { Edit3, Star, X, Clock, ChevronDown, ChevronRight, Minus, Plus, Share2 } from 'lucide-react';
 import { GOLD, TAGS, TECHNIQUE_ICONS, FLAVOR_PROFILES, DIETARY_FLAGS } from '../../data/constants';
-import { FLAVOR_AXES } from '../../data/flavorData';
+import { FLAVOR_AXES, EXTENDED_ABV_MAP } from '../../data/flavorData';
 import { getCocktailImage } from '../../utils/images';
 import { formatCurrency } from '../../utils/formatting';
 import { Card, Badge, SectionHeader, Button } from '../ui';
 import { FlavorRadarSVG } from './RecipeCreator';
+
+// Parse "60ml tequila, 30ml triple sec, ..." from instructions text
+const parseInstructionSpecs = (instructions) => {
+  if (!instructions) return { totalVolume: 0, abv: 0 };
+  const pattern = /(\d+(?:\.\d+)?)\s*ml\s+(.+?)(?:,|\.\s|$)/gi;
+  let match;
+  let totalVol = 0;
+  let totalAlcohol = 0;
+
+  while ((match = pattern.exec(instructions)) !== null) {
+    const amount = parseFloat(match[1]);
+    const name = match[2].trim().toLowerCase();
+    if (isNaN(amount)) continue;
+    totalVol += amount;
+
+    for (const [key, abv] of Object.entries(EXTENDED_ABV_MAP)) {
+      if (name.includes(key)) {
+        totalAlcohol += (amount * abv) / 100;
+        break;
+      }
+    }
+  }
+
+  const abv = totalVol > 0 ? (totalAlcohol / totalVol) * 100 : 0;
+  return { totalVolume: Math.round(totalVol), abv: Math.round(abv * 10) / 10 };
+};
 
 const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFavorite, favorites, onUpdateCocktail }) => {
   const [batchSize, setBatchSize] = useState(1);
@@ -187,11 +213,16 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
         ctx.stroke();
         curY += 28;
 
-        // Total Volume + ABV specs
-        const totalVol = cocktail.ingredientDetails
-          ? cocktail.ingredientDetails.reduce((sum, ing) => sum + (ing.amount || 0), 0)
-          : 0;
-        const abvVal = cocktail.abv || 0;
+        // Total Volume + ABV specs (dynamic calculation)
+        let totalVol, abvVal;
+        if (cocktail.ingredientDetails) {
+          totalVol = Math.round(cocktail.ingredientDetails.reduce((sum, ing) => sum + (ing.amount || 0), 0));
+          abvVal = cocktail.abv || 0;
+        } else {
+          const parsed = parseInstructionSpecs(cocktail.instructions);
+          totalVol = parsed.totalVolume;
+          abvVal = parsed.abv;
+        }
 
         ctx.font = '600 28px -apple-system, system-ui, sans-serif';
         ctx.textAlign = 'left';
