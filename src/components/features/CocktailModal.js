@@ -158,12 +158,13 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
         const ingList = cocktail.ingredientDetails
           || cocktail.ingredients.map(name => ({ name: (name || '').trim() }));
         const ingCount = ingList.length;
-        const idealLineH = 48;
+        const idealLineH = 52;
         const maxIngBottom = H - 120;
-        const lineH = Math.min(idealLineH, Math.max(36, Math.floor((maxIngBottom - curY) / Math.max(1, ingCount))));
+        const lineH = Math.min(idealLineH, Math.max(42, Math.floor((maxIngBottom - curY) / Math.max(1, ingCount))));
         const ingStartY = curY;
         ingList.forEach(ing => {
-          const label = ing.amount ? `${ing.amount}${ing.unit || 'ml'} ${ing.name}` : ing.name;
+          const hasAmount = ing.amount != null && ing.amount !== '';
+          const label = hasAmount ? `${ing.amount} ${ing.unit || 'ml'} ${ing.name}` : ing.name;
           ctx.font = '300 32px -apple-system, system-ui, sans-serif';
           ctx.textAlign = 'left';
           ctx.fillStyle = GOLD;

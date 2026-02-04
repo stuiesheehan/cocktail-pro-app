@@ -71,7 +71,6 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
   const fileInputRef = useRef(null);
 
   const searchFilter = (item) => !ingredientSearch || item.name.toLowerCase().includes(ingredientSearch.toLowerCase());
-  const resetSearch = () => { setIngredientSearch(''); setModifierFilter('all'); };
 
   const SearchBar = () => (
     <div className="relative mb-4">
@@ -123,8 +122,7 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
   };
 
   const [recipe, setRecipe] = useState({
-    baseSpirit: null,
-    baseSpiritAmount: 60,
+    baseSpirits: [],
     modifiers: [],
     acids: [],
     sweeteners: [],
@@ -180,13 +178,13 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
     let totalVolume = 0;
     let totalCost = 0;
 
-    if (recipe.baseSpirit) {
-      const spirit = spiritOptions.find(s => s.name === recipe.baseSpirit);
-      const abv = getIngredientABV(recipe.baseSpirit);
-      totalAlcohol += (recipe.baseSpiritAmount * abv) / 100;
-      totalVolume += recipe.baseSpiritAmount;
-      totalCost += (spirit?.unitCost || 22) * (recipe.baseSpiritAmount / 750);
-    }
+    recipe.baseSpirits.forEach(bs => {
+      const spirit = spiritOptions.find(s => s.name === bs.name);
+      const abv = getIngredientABV(bs.name);
+      totalAlcohol += (bs.amount * abv) / 100;
+      totalVolume += bs.amount;
+      totalCost += (spirit?.unitCost || 22) * (bs.amount / 750);
+    });
 
     recipe.modifiers.forEach(mod => {
       const abv = getIngredientABV(mod.name);
@@ -238,7 +236,7 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
 
     let bitterScore = 0;
     const allIngredientNames = [
-      recipe.baseSpirit,
+      ...recipe.baseSpirits.map(s => s.name),
       ...recipe.modifiers.map(m => m.name),
     ].filter(Boolean).map(n => n.toLowerCase());
 
@@ -258,7 +256,7 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
 
     let botanicalScore = 0;
     const allNamesIncludingBase = [
-      recipe.baseSpirit,
+      ...recipe.baseSpirits.map(s => s.name),
       ...recipe.modifiers.map(m => m.name),
     ].filter(Boolean).map(n => n.toLowerCase());
 
@@ -295,7 +293,7 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
   const smartSuggestions = useMemo(() => {
     const suggestions = [];
 
-    const hasBaseSpirit = !!recipe.baseSpirit;
+    const hasBaseSpirit = recipe.baseSpirits.length > 0;
     const hasAcid = recipe.acids.length > 0;
     const hasSweetener = recipe.sweeteners.length > 0;
 
@@ -307,7 +305,7 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
     }
 
     const currentNames = [
-      recipe.baseSpirit,
+      ...recipe.baseSpirits.map(s => s.name),
       ...recipe.modifiers.map(m => m.name),
       ...recipe.acids.map(a => a.name),
       ...recipe.sweeteners.map(s => s.name),
@@ -357,16 +355,43 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
     const noun = speakeasy.nouns[Math.floor(Math.random() * speakeasy.nouns.length)];
     const speakName = [`The ${adj} ${noun}`, `${adj} & ${noun}`][Math.floor(Math.random() * 2)];
     let ingredientName = 'The House Special';
-    if (recipe.baseSpirit) {
-      const spiritShort = recipe.baseSpirit.split(' ')[0];
+    if (recipe.baseSpirits.length > 0) {
+      const spiritShort = recipe.baseSpirits[0].name.split(' ')[0];
       ingredientName = recipe.modifiers.length > 0
         ? `${spiritShort} & ${recipe.modifiers[0].name.split(' ')[0]}`
         : `The ${spiritShort} Perfect`;
     }
     return { geographic: geoName, speakeasy: speakName, ingredientFocus: ingredientName };
-  }, [recipe.baseSpirit, recipe.modifiers]);
+  }, [recipe.baseSpirits, recipe.modifiers]);
+
+  // ── Selection summary for progress bar ──────────────────────
+  const summaryItems = useMemo(() => {
+    const items = [];
+    if (recipe.baseSpirits.length > 0)
+      items.push({ label: 'Base', value: recipe.baseSpirits.map(s => s.name).join(', ') });
+    if (recipe.modifiers.length > 0)
+      items.push({ label: 'Modifiers', value: recipe.modifiers.map(m => m.name).join(', ') });
+    if (recipe.acids.length > 0)
+      items.push({ label: 'Citrus', value: recipe.acids.map(a => a.name).join(', ') });
+    if (recipe.sweeteners.length > 0)
+      items.push({ label: 'Sweet', value: recipe.sweeteners.map(s => s.name).join(', ') });
+    if (recipe.mixers.length > 0)
+      items.push({ label: 'Mixers', value: recipe.mixers.map(m => m.name).join(', ') });
+    if (recipe.garnishes.length > 0)
+      items.push({ label: 'Garnish', value: recipe.garnishes.join(', ') });
+    return items;
+  }, [recipe]);
 
   // ── Add / remove helpers ───────────────────────────────────
+  const toggleSpirit = (name) => {
+    setRecipe(prev => ({
+      ...prev,
+      baseSpirits: prev.baseSpirits.find(s => s.name === name)
+        ? prev.baseSpirits.filter(s => s.name !== name)
+        : [...prev.baseSpirits, { name, amount: 60 }],
+    }));
+  };
+
   const addModifier = (name) => {
     if (!recipe.modifiers.find(m => m.name === name)) {
       setRecipe(prev => ({ ...prev, modifiers: [...prev.modifiers, { name, amount: 22.5 }] }));
@@ -411,7 +436,7 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
   // ── Save handler ───────────────────────────────────────────
   const handleSave = () => {
     const allIngredientsList = [
-      recipe.baseSpirit,
+      ...recipe.baseSpirits.map(s => s.name),
       ...recipe.modifiers.map(m => m.name),
       ...recipe.acids.map(a => a.name),
       ...recipe.sweeteners.map(s => s.name),
@@ -419,7 +444,7 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
     ].filter(Boolean);
 
     const specParts = [];
-    if (recipe.baseSpirit) specParts.push(`${recipe.baseSpiritAmount}ml ${recipe.baseSpirit}`);
+    recipe.baseSpirits.forEach(bs => specParts.push(`${bs.amount}ml ${bs.name}`));
     recipe.modifiers.forEach(m => specParts.push(`${m.amount}ml ${m.name}`));
     recipe.acids.forEach(a => specParts.push(`${a.amount}ml ${a.name}`));
     recipe.sweeteners.forEach(s => specParts.push(`${s.amount}ml ${s.name}`));
@@ -433,7 +458,7 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
     if (flavorRadar.Botanical > 3) flavorProfile.push('herbal');
 
     const ingredientDetails = [
-      ...(recipe.baseSpirit ? [{ name: recipe.baseSpirit, amount: recipe.baseSpiritAmount, unit: 'ml' }] : []),
+      ...recipe.baseSpirits.map(bs => ({ name: bs.name, amount: bs.amount, unit: 'ml' })),
       ...recipe.modifiers.map(m => ({ name: m.name, amount: m.amount, unit: 'ml' })),
       ...recipe.acids.map(a => ({ name: a.name, amount: a.amount, unit: 'ml' })),
       ...recipe.sweeteners.map(s => ({ name: s.name, amount: s.amount, unit: 'ml' })),
@@ -463,7 +488,7 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
   };
 
   const steps = [
-    { title: 'Base Spirit', icon: '🥃' },
+    { title: 'Spirits', icon: '🥃' },
     { title: 'Modifiers', icon: '🍾' },
     { title: 'Balance', icon: '⚖️' },
     { title: 'Garnish', icon: '🌿' },
@@ -506,8 +531,26 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
         <div className="w-10" />
       </div>
 
+      {/* Progress bar */}
+      <div className="px-4 pt-3 pb-1">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-xs font-medium" style={{ color: GOLD }}>
+            Step {step + 1}: {steps[step].title}
+          </span>
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            {step + 1} / {steps.length}
+          </span>
+        </div>
+        <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+          <div
+            className="h-full rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${(step / (steps.length - 1)) * 100}%`, backgroundColor: GOLD }}
+          />
+        </div>
+      </div>
+
       {/* Step indicators */}
-      <div className="flex justify-between px-4 py-3">
+      <div className="flex justify-between px-4 py-2">
         {steps.map((s, i) => (
           <div key={i} className="flex flex-col items-center" onClick={() => i <= step && setStep(i)} style={{ cursor: i <= step ? 'pointer' : 'default' }}>
             <div
@@ -524,52 +567,64 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
         ))}
       </div>
 
+      {/* Selection Summary */}
+      {summaryItems.length > 0 && (
+        <div className="px-4 pb-2">
+          <div
+            className="flex gap-3 overflow-x-auto py-2 px-3 rounded-lg"
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.04)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.08)',
+            }}
+          >
+            {summaryItems.map((item, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && <span className="text-white/20">|</span>}
+                <span className="flex items-center gap-1 text-xs whitespace-nowrap">
+                  <span className="font-medium" style={{ color: GOLD }}>{item.label}:</span>
+                  <span style={{ color: 'rgba(255,255,255,0.7)' }}>{item.value}</span>
+                </span>
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Step content */}
       <div className="flex-1 overflow-y-auto p-4">
 
         {/* ── Step 0: Base Spirit (category === 'Base Spirits') ── */}
         {step === 0 && (
           <div className="space-y-4">
-            <h3 className="text-xl font-light text-white mb-4">Choose Your Base Spirit</h3>
+            <h3 className="text-xl font-light text-white mb-4">Choose Base Spirits</h3>
+            {renderSelectedList(recipe.baseSpirits, 'baseSpirits')}
             <SearchBar />
             <div className="grid grid-cols-2 gap-3">
-              {spiritOptions.filter(s => s.inStock && searchFilter(s)).map(spirit => (
-                <button
-                  key={spirit.name}
-                  onClick={() => { setRecipe(prev => ({ ...prev, baseSpirit: spirit.name })); resetSearch(); }}
-                  className="p-4 rounded-xl text-left transition-all active:scale-95"
-                  style={{
-                    backgroundColor: recipe.baseSpirit === spirit.name ? `${GOLD}30` : 'rgba(255,255,255,0.05)',
-                    backdropFilter: 'blur(10px)',
-                    WebkitBackdropFilter: 'blur(10px)',
-                    border: `2px solid ${recipe.baseSpirit === spirit.name ? GOLD : 'rgba(255,255,255,0.08)'}`,
-                  }}
-                >
-                  <span className="text-2xl block mb-2">🥃</span>
-                  <span className="text-sm text-white font-medium">{spirit.name}</span>
-                  <span className="text-xs block mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                    {getIngredientABV(spirit.name)}% ABV
-                  </span>
-                </button>
-              ))}
+              {spiritOptions.filter(s => s.inStock && searchFilter(s)).map(spirit => {
+                const isSelected = recipe.baseSpirits.some(s => s.name === spirit.name);
+                return (
+                  <button
+                    key={spirit.name}
+                    onClick={() => toggleSpirit(spirit.name)}
+                    className="p-4 rounded-xl text-left transition-all active:scale-95"
+                    style={{
+                      backgroundColor: isSelected ? `${GOLD}30` : 'rgba(255,255,255,0.05)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      border: `2px solid ${isSelected ? GOLD : 'rgba(255,255,255,0.08)'}`,
+                    }}
+                  >
+                    <span className="text-2xl block mb-2">🥃</span>
+                    <span className="text-sm text-white font-medium">{spirit.name}</span>
+                    <span className="text-xs block mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                      {getIngredientABV(spirit.name)}% ABV
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-            {recipe.baseSpirit && (
-              <div className="mt-6 p-4 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
-                <label className="text-sm text-white/60 mb-2 block">Amount (ml)</label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="range"
-                    min="30"
-                    max="90"
-                    step="7.5"
-                    value={recipe.baseSpiritAmount}
-                    onChange={(e) => setRecipe(prev => ({ ...prev, baseSpiritAmount: parseFloat(e.target.value) }))}
-                    className="flex-1"
-                  />
-                  <span className="text-xl font-bold" style={{ color: GOLD }}>{recipe.baseSpiritAmount}ml</span>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -896,7 +951,7 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
         <div className="flex gap-3">
           {step > 0 && <Button variant="default" onClick={() => setStep(s => s - 1)} className="flex-1">Back</Button>}
           {step < 5
-            ? <Button variant="gold" onClick={() => setStep(s => s + 1)} className="flex-1" disabled={step === 0 && !recipe.baseSpirit}>Next</Button>
+            ? <Button variant="gold" onClick={() => setStep(s => s + 1)} className="flex-1" disabled={step === 0 && recipe.baseSpirits.length === 0}>Next</Button>
             : <Button variant="gold" onClick={handleSave} className="flex-1" disabled={!recipe.name && !generatedNames.speakeasy}>Save to My Bar</Button>
           }
         </div>
