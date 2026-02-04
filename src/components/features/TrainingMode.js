@@ -75,6 +75,7 @@ const TrainingMode = ({ cocktails }) => {
       calculateMixScore();
     }
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTimerRunning, timeLeft]);
 
   // Get all unique ingredients, glasses, and techniques from cocktails
