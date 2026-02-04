@@ -389,31 +389,31 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
       ...prev,
       baseSpirits: prev.baseSpirits.find(s => s.name === name)
         ? prev.baseSpirits.filter(s => s.name !== name)
-        : [...prev.baseSpirits, { name, amount: 60 }],
+        : [...prev.baseSpirits, { name, amount: 30 }],
     }));
   };
 
   const addModifier = (name) => {
     if (!recipe.modifiers.find(m => m.name === name)) {
-      setRecipe(prev => ({ ...prev, modifiers: [...prev.modifiers, { name, amount: 22.5 }] }));
+      setRecipe(prev => ({ ...prev, modifiers: [...prev.modifiers, { name, amount: 30 }] }));
     }
   };
 
   const addAcid = (name) => {
     if (!recipe.acids.find(a => a.name === name)) {
-      setRecipe(prev => ({ ...prev, acids: [...prev.acids, { name, amount: 22.5 }] }));
+      setRecipe(prev => ({ ...prev, acids: [...prev.acids, { name, amount: 30 }] }));
     }
   };
 
   const addSweetener = (name) => {
     if (!recipe.sweeteners.find(s => s.name === name)) {
-      setRecipe(prev => ({ ...prev, sweeteners: [...prev.sweeteners, { name, amount: 15 }] }));
+      setRecipe(prev => ({ ...prev, sweeteners: [...prev.sweeteners, { name, amount: 30 }] }));
     }
   };
 
   const addMixer = (name) => {
     if (!recipe.mixers.find(m => m.name === name)) {
-      setRecipe(prev => ({ ...prev, mixers: [...prev.mixers, { name, amount: 60 }] }));
+      setRecipe(prev => ({ ...prev, mixers: [...prev.mixers, { name, amount: 30 }] }));
     }
   };
 
@@ -497,26 +497,42 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
     { title: 'Finish', icon: '✨' },
   ];
 
-  // ── Helper: render an amount-editable list of selected items ──
+  // ── Helper: render selected items with quick-select amount buttons ──
+  const POUR_PRESETS = [15, 22.5, 30, 45, 60];
+
   const renderSelectedList = (items, listKey) => (
     items.length > 0 && (
       <div className="space-y-2 mb-4">
         {items.map(item => (
-          <div key={item.name} className="flex items-center gap-3 p-3 rounded-xl" style={{ backgroundColor: `${GOLD}20` }}>
-            <span className="flex-1 text-white text-sm">{item.name}</span>
-            <input
-              type="number"
-              value={item.amount}
-              onChange={(e) => setRecipe(prev => ({
-                ...prev,
-                [listKey]: prev[listKey].map(m => m.name === item.name ? { ...m, amount: parseFloat(e.target.value) || 0 } : m),
-              }))}
-              className="w-16 px-2 py-1 rounded text-center text-sm bg-black/30 text-white"
-            />
-            <span className="text-xs text-white/40">ml</span>
-            <button onClick={() => setRecipe(prev => ({ ...prev, [listKey]: prev[listKey].filter(m => m.name !== item.name) }))}>
-              <X className="w-4 h-4 text-white/40" />
-            </button>
+          <div key={item.name} className="p-3 rounded-xl" style={{ backgroundColor: `${GOLD}20` }}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-white text-sm font-medium">{item.name}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold" style={{ color: GOLD }}>{item.amount}ml</span>
+                <button onClick={() => setRecipe(prev => ({ ...prev, [listKey]: prev[listKey].filter(m => m.name !== item.name) }))}>
+                  <X className="w-4 h-4 text-white/40" />
+                </button>
+              </div>
+            </div>
+            <div className="flex gap-1.5">
+              {POUR_PRESETS.map(amt => (
+                <button
+                  key={amt}
+                  onClick={() => setRecipe(prev => ({
+                    ...prev,
+                    [listKey]: prev[listKey].map(m => m.name === item.name ? { ...m, amount: amt } : m),
+                  }))}
+                  className="flex-1 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95"
+                  style={{
+                    backgroundColor: item.amount === amt ? GOLD : 'rgba(255,255,255,0.08)',
+                    color: item.amount === amt ? '#000' : 'rgba(255,255,255,0.6)',
+                    border: `1px solid ${item.amount === amt ? GOLD : 'rgba(255,255,255,0.1)'}`,
+                  }}
+                >
+                  {amt}
+                </button>
+              ))}
+            </div>
           </div>
         ))}
       </div>
