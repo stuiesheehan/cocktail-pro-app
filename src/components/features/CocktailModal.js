@@ -15,6 +15,8 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
   const [imageUrl, setImageUrl] = useState('');
   const [sharing, setSharing] = useState(false);
 
+  const triggerHaptic = () => { if (navigator.vibrate) navigator.vibrate(10); };
+
   if (!cocktail) return null;
 
   const isFavorite = favorites.includes(cocktail.name);
@@ -110,7 +112,7 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
         ctx.lineWidth = 2.5;
         ctx.stroke();
 
-        // ── Bottom-left: Name + Ingredients + Cost ──
+        // ── Bottom-left: Name + Ingredients + Specs ──
         const leftX = 70;
         let curY = 430;
 
@@ -175,7 +177,7 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
         });
         const ingEndY = curY;
 
-        // Cost divider
+        // Specs divider
         curY += 12;
         ctx.beginPath();
         ctx.moveTo(leftX, curY);
@@ -185,28 +187,27 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
         ctx.stroke();
         curY += 28;
 
-        // Cost / Price / Margin row
-        ctx.font = '300 20px -apple-system, system-ui, sans-serif';
+        // Total Volume + ABV specs
+        const totalVol = cocktail.ingredientDetails
+          ? cocktail.ingredientDetails.reduce((sum, ing) => sum + (ing.amount || 0), 0)
+          : 0;
+        const abvVal = cocktail.abv || 0;
+
+        ctx.font = '600 28px -apple-system, system-ui, sans-serif';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
-        ctx.fillStyle = '#EF4444';
-        ctx.fillText(`\u20AC${costPerDrink.toFixed(2)}`, leftX, curY);
-        const costW = ctx.measureText(`\u20AC${costPerDrink.toFixed(2)}`).width;
+        ctx.fillStyle = '#fff';
+        ctx.fillText(`${Math.round(totalVol)} ml`, leftX, curY);
+        const volW = ctx.measureText(`${Math.round(totalVol)} ml`).width;
         ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        ctx.fillText(' \u00B7 ', leftX + costW, curY);
-        ctx.fillStyle = '#10B981';
-        ctx.fillText(`\u20AC${sellPrice.toFixed(2)}`, leftX + costW + 25, curY);
-        const priceW = ctx.measureText(`\u20AC${sellPrice.toFixed(2)}`).width;
-        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        ctx.fillText(' \u00B7 ', leftX + costW + 25 + priceW, curY);
+        ctx.fillText(' \u00B7 ', leftX + volW, curY);
         ctx.fillStyle = GOLD;
-        ctx.fillText(`${margin}%`, leftX + costW + 50 + priceW, curY);
-        curY += 22;
+        ctx.fillText(`${abvVal}% ABV`, leftX + volW + 25, curY);
+        curY += 32;
         ctx.font = '300 12px -apple-system, system-ui, sans-serif';
         ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        ctx.fillText('Cost', leftX, curY);
-        ctx.fillText('Price', leftX + costW + 25, curY);
-        ctx.fillText('Margin', leftX + costW + 50 + priceW, curY);
+        ctx.fillText('Total Volume', leftX, curY);
+        ctx.fillText('Strength', leftX + volW + 25, curY);
 
         // ── Right side: Flavor Radar (centered relative to left content) ──
         const hasRadar = cocktail.radarScores && Object.values(cocktail.radarScores).some(v => v > 0);
@@ -373,22 +374,22 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
                 autoFocus
               />
               <div className="flex gap-2">
-                <button onClick={saveImage} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ backgroundColor: GOLD, color: '#000' }}>
+                <button onClick={() => { triggerHaptic(); saveImage(); }} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ backgroundColor: GOLD, color: '#000' }}>
                   Save
                 </button>
                 {cocktail.image && (
-                  <button onClick={clearImage} className="px-4 py-2 rounded-lg text-sm font-medium bg-red-500/20 text-red-400 border border-red-500/30">
+                  <button onClick={() => { triggerHaptic(); clearImage(); }} className="px-4 py-2 rounded-lg text-sm font-medium bg-red-500/20 text-red-400 border border-red-500/30">
                     Clear
                   </button>
                 )}
-                <button onClick={() => { setEditingImage(false); setImageUrl(''); }} className="px-4 py-2 rounded-lg text-sm font-medium bg-white/10 text-white/70">
+                <button onClick={() => { triggerHaptic(); setEditingImage(false); setImageUrl(''); }} className="px-4 py-2 rounded-lg text-sm font-medium bg-white/10 text-white/70">
                   Cancel
                 </button>
               </div>
             </div>
           ) : (
             <button
-              onClick={() => setEditingImage(true)}
+              onClick={() => { triggerHaptic(); setEditingImage(true); }}
               className="absolute top-4 left-4 w-10 h-10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
               style={{ backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.2)' }}
             >
@@ -397,13 +398,13 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
           )}
 
           <div className="absolute top-4 right-4 flex gap-2">
-            <button onClick={handleShare} disabled={sharing} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.2)', opacity: sharing ? 0.5 : 1 }}>
+            <button onClick={() => { triggerHaptic(); handleShare(); }} disabled={sharing} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.2)', opacity: sharing ? 0.5 : 1 }}>
               <Share2 className={`w-5 h-5 text-white/60 ${sharing ? 'animate-pulse' : ''}`} />
             </button>
-            <button onClick={() => onToggleFavorite(cocktail.name)} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.2)' }}>
+            <button onClick={() => { triggerHaptic(); onToggleFavorite(cocktail.name); }} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.2)' }}>
               <Star className={`w-5 h-5 ${isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-white/60'}`} />
             </button>
-            <button onClick={onClose} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.2)' }}>
+            <button onClick={() => { triggerHaptic(); onClose(); }} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.2)' }}>
               <X className="w-5 h-5 text-white/60" />
             </button>
           </div>
@@ -473,14 +474,14 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs uppercase tracking-widest" style={{ color: GOLD }}>Batch Size</span>
               <div className="flex items-center gap-3">
-                <button onClick={() => setBatchSize(Math.max(1, batchSize - 1))} className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20"><Minus className="w-4 h-4 text-white" /></button>
+                <button onClick={() => { triggerHaptic(); setBatchSize(Math.max(1, batchSize - 1)); }} className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20"><Minus className="w-4 h-4 text-white" /></button>
                 <span className="text-xl font-light text-white w-8 text-center">{batchSize}x</span>
-                <button onClick={() => setBatchSize(batchSize + 1)} className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20"><Plus className="w-4 h-4 text-white" /></button>
+                <button onClick={() => { triggerHaptic(); setBatchSize(batchSize + 1); }} className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20"><Plus className="w-4 h-4 text-white" /></button>
               </div>
             </div>
             <div className="flex gap-2">
               {[1, 2, 5, 10].map(n => (
-                <button key={n} onClick={() => setBatchSize(n)} className={`flex-1 py-2 rounded-lg text-sm ${batchSize === n ? 'bg-white/20 text-white' : 'bg-white/5 text-white/50'}`}>{n}x</button>
+                <button key={n} onClick={() => { triggerHaptic(); setBatchSize(n); }} className={`flex-1 py-2 rounded-lg text-sm ${batchSize === n ? 'bg-white/20 text-white' : 'bg-white/5 text-white/50'}`}>{n}x</button>
               ))}
             </div>
           </Card>
@@ -525,7 +526,7 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
 
           {/* Staff Notes */}
           <Card className="p-4">
-            <button onClick={() => setShowNotes(!showNotes)} className="w-full flex items-center justify-between">
+            <button onClick={() => { triggerHaptic(); setShowNotes(!showNotes); }} className="w-full flex items-center justify-between">
               <span className="text-xs uppercase tracking-widest" style={{ color: GOLD }}>Staff Notes ({cocktail.notes?.length || 0})</span>
               {showNotes ? <ChevronDown className="w-4 h-4 text-white/40" /> : <ChevronRight className="w-4 h-4 text-white/40" />}
             </button>
@@ -544,7 +545,7 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
                     placeholder="Add a note..."
                     className="flex-1 px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/10 text-white outline-none"
                   />
-                  <Button variant="gold" size="sm" onClick={addNote}>Add</Button>
+                  <Button variant="gold" size="sm" onClick={() => { triggerHaptic(); addNote(); }}>Add</Button>
                 </div>
               </div>
             )}
@@ -554,7 +555,7 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
           <div className="pt-2">
             {cocktail.canMake ? (
               <button
-                onClick={() => onMakeDrink(cocktail, batchSize)}
+                onClick={() => { triggerHaptic(); onMakeDrink(cocktail, batchSize); }}
                 className="w-full py-4 rounded-xl font-semibold tracking-wide transition-all hover:scale-[1.02] active:scale-[0.98]"
                 style={{ background: `linear-gradient(135deg, ${GOLD} 0%, #B8960C 100%)`, color: '#000' }}
               >
