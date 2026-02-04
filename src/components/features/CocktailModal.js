@@ -147,22 +147,32 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
         curY += 25;
 
         // Ingredients header
-        ctx.font = '600 14px -apple-system, system-ui, sans-serif';
+        ctx.font = '600 16px -apple-system, system-ui, sans-serif';
         ctx.fillStyle = GOLD;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
         ctx.fillText('INGREDIENTS', leftX, curY);
-        curY += 30;
+        curY += 32;
 
-        // Ingredients list (with measurements when available)
-        ctx.font = '300 32px -apple-system, system-ui, sans-serif';
-        const ingList = cocktail.ingredientDetails || cocktail.ingredients.map(name => ({ name }));
+        // Ingredients list (structured details for custom, trimmed strings for originals)
+        const ingList = cocktail.ingredientDetails
+          || cocktail.ingredients.map(name => ({ name: (name || '').trim() }));
+        const ingCount = ingList.length;
+        const idealLineH = 48;
+        const maxIngBottom = H - 120;
+        const lineH = Math.min(idealLineH, Math.max(36, Math.floor((maxIngBottom - curY) / Math.max(1, ingCount))));
+        const ingStartY = curY;
         ingList.forEach(ing => {
           const label = ing.amount ? `${ing.amount}${ing.unit || 'ml'} ${ing.name}` : ing.name;
+          ctx.font = '300 32px -apple-system, system-ui, sans-serif';
+          ctx.textAlign = 'left';
           ctx.fillStyle = GOLD;
           ctx.fillText('\u2022', leftX + 4, curY);
           ctx.fillStyle = 'rgba(255,255,255,0.8)';
           ctx.fillText(label, leftX + 30, curY);
-          curY += 45;
+          curY += lineH;
         });
+        const ingEndY = curY;
 
         // Cost divider
         curY += 12;
@@ -176,6 +186,8 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
 
         // Cost / Price / Margin row
         ctx.font = '300 20px -apple-system, system-ui, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
         ctx.fillStyle = '#EF4444';
         ctx.fillText(`\u20AC${costPerDrink.toFixed(2)}`, leftX, curY);
         const costW = ctx.measureText(`\u20AC${costPerDrink.toFixed(2)}`).width;
@@ -195,11 +207,15 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
         ctx.fillText('Price', leftX + costW + 25, curY);
         ctx.fillText('Margin', leftX + costW + 50 + priceW, curY);
 
-        // ── Right side: Flavor Radar ──
-        const scores = cocktail.radarScores || { Sweet: 0, Sour: 0, Bitter: 0, Strength: 0, Botanical: 0 };
+        // ── Right side: Flavor Radar (centered relative to left content) ──
+        const hasRadar = cocktail.radarScores && Object.values(cocktail.radarScores).some(v => v > 0);
+        const scores = hasRadar ? cocktail.radarScores : { Sweet: 5, Sour: 5, Bitter: 5, Strength: 5, Botanical: 5 };
         const axes = FLAVOR_AXES;
         const n = axes.length;
-        const radarCx = 790, radarCy = 480, radarR = 200;
+        const radarR = 200;
+        const radarCx = 790;
+        const leftContentMid = Math.round((ingStartY + ingEndY) / 2);
+        const radarCy = Math.max(radarR + 80, Math.min(H - radarR - 80, leftContentMid));
         const angleStep = (2 * Math.PI) / n;
         const startAngle = -Math.PI / 2;
 
@@ -271,13 +287,13 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
         });
 
         // Axis labels + score values
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
         axes.forEach((axis, i) => {
           const a = startAngle + i * angleStep;
           const lx = radarCx + (radarR + 35) * Math.cos(a);
           const ly = radarCy + (radarR + 35) * Math.sin(a);
           ctx.font = '500 18px -apple-system, system-ui, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
           ctx.fillStyle = 'rgba(255,255,255,0.6)';
           ctx.fillText(axis, lx, ly);
           ctx.font = '700 15px -apple-system, system-ui, sans-serif';

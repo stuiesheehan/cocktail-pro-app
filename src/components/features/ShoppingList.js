@@ -7,7 +7,6 @@ const ShoppingList = ({ ingredients, setIngredients }) => {
   const [showParLevels, setShowParLevels] = useState(false);
 
   const outOfStock = ingredients.filter(i => !i.inStock);
-  const lowStock = ingredients.filter(i => i.parLevel && i.currentStock < i.parLevel);
 
   const updateParLevel = (name, parLevel) => {
     setIngredients(prev => prev.map(i => i.name === name ? { ...i, parLevel } : i));

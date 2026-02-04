@@ -35,6 +35,7 @@ const TrainingMode = ({ cocktails }) => {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [speedScore, setSpeedScore] = useState(0);
   const [speedRound, setSpeedRound] = useState(0);
+  // eslint-disable-next-line no-unused-vars
   const [speedHistory, setSpeedHistory] = useState([]);
 
   // Ice animation
@@ -227,7 +228,6 @@ const TrainingMode = ({ cocktails }) => {
     if (!mixCocktail) return;
 
     const correctIngredients = mixCocktail.ingredients;
-    const selectedSet = new Set(selectedIngredients);
     const correctSet = new Set(correctIngredients);
 
     let ingredientPoints = 0;

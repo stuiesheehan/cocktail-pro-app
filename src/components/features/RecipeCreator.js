@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { X, Camera } from 'lucide-react';
+import { X, Camera, Search } from 'lucide-react';
 import { GOLD, DARK_BG, TECHNIQUE_ICONS } from '../../data/constants';
 import {
   FLAVOR_AXES, BITTER_INGREDIENTS, BOTANICAL_INGREDIENTS,
@@ -66,7 +66,33 @@ export const FlavorRadarSVG = ({ scores, size = 100 }) => {
 const RecipeCreator = ({ ingredients, onSave, onClose }) => {
   const [step, setStep] = useState(0);
   const [photoData, setPhotoData] = useState(null);
+  const [ingredientSearch, setIngredientSearch] = useState('');
+  const [modifierFilter, setModifierFilter] = useState('all');
   const fileInputRef = useRef(null);
+
+  const searchFilter = (item) => !ingredientSearch || item.name.toLowerCase().includes(ingredientSearch.toLowerCase());
+  const resetSearch = () => { setIngredientSearch(''); setModifierFilter('all'); };
+
+  const SearchBar = () => (
+    <div className="relative mb-4">
+      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
+      <input
+        type="text"
+        placeholder="Search ingredients..."
+        value={ingredientSearch}
+        onChange={e => setIngredientSearch(e.target.value)}
+        className="w-full pl-11 pr-4 py-3 rounded-xl outline-none"
+        style={{
+          fontSize: '16px',
+          backgroundColor: 'rgba(255,255,255,0.05)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          border: `1px solid ${GOLD}40`,
+          color: '#fff',
+        }}
+      />
+    </div>
+  );
 
   const compressImage = (file) => {
     return new Promise((resolve) => {
@@ -137,10 +163,6 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
     return ingredients.filter(i =>
       i.category === 'Garnishes' || i.category === 'Fresh Herbs'
     );
-  }, [ingredients]);
-
-  const extraOptions = useMemo(() => {
-    return ingredients.filter(i => i.category === 'Other');
   }, [ingredients]);
 
   // ── ABV lookup ─────────────────────────────────────────────
@@ -509,15 +531,18 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
         {step === 0 && (
           <div className="space-y-4">
             <h3 className="text-xl font-light text-white mb-4">Choose Your Base Spirit</h3>
+            <SearchBar />
             <div className="grid grid-cols-2 gap-3">
-              {spiritOptions.filter(s => s.inStock).map(spirit => (
+              {spiritOptions.filter(s => s.inStock && searchFilter(s)).map(spirit => (
                 <button
                   key={spirit.name}
-                  onClick={() => setRecipe(prev => ({ ...prev, baseSpirit: spirit.name }))}
-                  className="p-4 rounded-xl text-left"
+                  onClick={() => { setRecipe(prev => ({ ...prev, baseSpirit: spirit.name })); resetSearch(); }}
+                  className="p-4 rounded-xl text-left transition-all active:scale-95"
                   style={{
                     backgroundColor: recipe.baseSpirit === spirit.name ? `${GOLD}30` : 'rgba(255,255,255,0.05)',
-                    border: `2px solid ${recipe.baseSpirit === spirit.name ? GOLD : 'transparent'}`,
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    border: `2px solid ${recipe.baseSpirit === spirit.name ? GOLD : 'rgba(255,255,255,0.08)'}`,
                   }}
                 >
                   <span className="text-2xl block mb-2">🥃</span>
@@ -553,15 +578,39 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
           <div className="space-y-4">
             <h3 className="text-xl font-light text-white mb-4">Add Modifiers</h3>
             {renderSelectedList(recipe.modifiers, 'modifiers')}
+            <SearchBar />
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {[{ key: 'all', label: 'All' }, { key: 'Liqueurs', label: 'Liqueurs' }, { key: 'Bitters', label: 'Bitters' }, { key: 'Wine & Champagne', label: 'Wine' }].map(f => (
+                <button
+                  key={f.key}
+                  onClick={() => setModifierFilter(modifierFilter === f.key ? 'all' : f.key)}
+                  className="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all active:scale-95"
+                  style={{
+                    backgroundColor: modifierFilter === f.key ? `${GOLD}20` : 'rgba(255,255,255,0.05)',
+                    border: `1px solid ${modifierFilter === f.key ? `${GOLD}60` : 'rgba(255,255,255,0.1)'}`,
+                    color: modifierFilter === f.key ? GOLD : 'rgba(255,255,255,0.6)',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
             <div className="grid grid-cols-2 gap-2">
               {modifierOptions
-                .filter(l => l.inStock && !recipe.modifiers.find(m => m.name === l.name))
+                .filter(l => l.inStock && !recipe.modifiers.find(m => m.name === l.name) && searchFilter(l) && (modifierFilter === 'all' || l.category === modifierFilter))
                 .map(item => (
                   <button
                     key={item.name}
                     onClick={() => addModifier(item.name)}
-                    className="p-3 rounded-xl text-left text-sm"
-                    style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+                    className="p-3 rounded-xl text-left text-sm transition-all active:scale-95"
+                    style={{
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                    }}
                   >
                     <span className="text-white">{item.name}</span>
                     <span className="text-xs block mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
@@ -587,8 +636,8 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
                     <button
                       key={acid.name}
                       onClick={() => addAcid(acid.name)}
-                      className="px-4 py-2 rounded-full text-sm"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#84CC16' }}
+                      className="px-4 py-2 rounded-full text-sm transition-all active:scale-95"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.08)', color: '#84CC16' }}
                     >
                       {acid.name}
                     </button>
@@ -607,8 +656,8 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
                     <button
                       key={sweet.name}
                       onClick={() => addSweetener(sweet.name)}
-                      className="px-4 py-2 rounded-full text-sm"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#F59E0B' }}
+                      className="px-4 py-2 rounded-full text-sm transition-all active:scale-95"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.08)', color: '#F59E0B' }}
                     >
                       {sweet.name}
                     </button>
@@ -627,8 +676,8 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
                     <button
                       key={mixer.name}
                       onClick={() => addMixer(mixer.name)}
-                      className="px-4 py-2 rounded-full text-sm"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#06B6D4' }}
+                      className="px-4 py-2 rounded-full text-sm transition-all active:scale-95"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.08)', color: '#06B6D4' }}
                     >
                       {mixer.name}
                     </button>
@@ -650,10 +699,12 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
                   <button
                     key={g.name}
                     onClick={() => isGarnish ? toggleGarnish(g.name) : toggleExtra(g.name)}
-                    className="px-4 py-2 rounded-full flex items-center gap-2"
+                    className="px-4 py-2 rounded-full flex items-center gap-2 transition-all active:scale-95"
                     style={{
                       backgroundColor: selected ? `${GOLD}30` : 'rgba(255,255,255,0.05)',
-                      border: `1px solid ${selected ? GOLD : 'transparent'}`,
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      border: `1px solid ${selected ? GOLD : 'rgba(255,255,255,0.08)'}`,
                     }}
                   >
                     <span className="text-sm text-white">{g.name}</span>
@@ -675,10 +726,12 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
                   <button
                     key={tech}
                     onClick={() => setRecipe(prev => ({ ...prev, technique: tech }))}
-                    className="p-4 rounded-xl text-center"
+                    className="p-4 rounded-xl text-center transition-all active:scale-95"
                     style={{
                       backgroundColor: recipe.technique === tech ? `${GOLD}30` : 'rgba(255,255,255,0.05)',
-                      border: `2px solid ${recipe.technique === tech ? GOLD : 'transparent'}`,
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      border: `2px solid ${recipe.technique === tech ? GOLD : 'rgba(255,255,255,0.08)'}`,
                     }}
                   >
                     <span className="text-2xl block mb-2">{TECHNIQUE_ICONS[tech]}</span>
@@ -694,10 +747,12 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
                   <button
                     key={glass}
                     onClick={() => setRecipe(prev => ({ ...prev, glass }))}
-                    className="p-3 rounded-xl text-left"
+                    className="p-3 rounded-xl text-left transition-all active:scale-95"
                     style={{
                       backgroundColor: recipe.glass === glass ? `${GOLD}30` : 'rgba(255,255,255,0.05)',
-                      border: `1px solid ${recipe.glass === glass ? GOLD : 'transparent'}`,
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      border: `1px solid ${recipe.glass === glass ? GOLD : 'rgba(255,255,255,0.08)'}`,
                     }}
                   >
                     <span className="text-sm text-white">{glass}</span>

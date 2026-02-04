@@ -10,7 +10,6 @@ const PartyMode = ({ cocktails, isPremium, onShowUpgrade }) => {
   const [showQR, setShowQR] = useState(false);
 
   const availableCocktails = cocktails.filter(c => c.canMake);
-  const sessionId = useMemo(() => `party_${Date.now()}`, []);
 
   const simulateOrder = () => {
     if (orderQueue.length >= 20) return;
