@@ -33,6 +33,19 @@ const parseInstructionSpecs = (instructions) => {
   return { totalVolume: Math.round(totalVol), abv: Math.round(abv * 10) / 10 };
 };
 
+// Extract individual {amount, rawName} pairs from instructions
+const parseInstructionAmounts = (instructions) => {
+  if (!instructions) return [];
+  const pattern = /(\d+(?:\.\d+)?)\s*ml\s+(.+?)(?:,|\.\s|$)/gi;
+  const results = [];
+  let match;
+  while ((match = pattern.exec(instructions)) !== null) {
+    const amount = parseFloat(match[1]);
+    if (!isNaN(amount)) results.push({ amount, rawName: match[2].trim() });
+  }
+  return results;
+};
+
 const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFavorite, favorites, onUpdateCocktail }) => {
   const [batchSize, setBatchSize] = useState(1);
   const [showNotes, setShowNotes] = useState(false);
@@ -182,9 +195,29 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
         ctx.fillText('INGREDIENTS', leftX, curY);
         curY += 32;
 
-        // Ingredients list (structured details for custom, trimmed strings for originals)
-        const ingList = cocktail.ingredientDetails
-          || cocktail.ingredients.map(name => ({ name: (name || '').trim() }));
+        // Ingredients list (structured details for custom, regex-matched for defaults)
+        let ingList;
+        if (cocktail.ingredientDetails) {
+          ingList = cocktail.ingredientDetails;
+        } else {
+          const parsedAmounts = parseInstructionAmounts(cocktail.instructions);
+          const used = new Set();
+          ingList = cocktail.ingredients.map(name => {
+            const lower = (name || '').trim().toLowerCase();
+            const stems = lower.split(/[\s/]+/).filter(p => p.length > 2).map(p => p.replace(/s$/, ''));
+            const idx = parsedAmounts.findIndex((p, i) => {
+              if (used.has(i)) return false;
+              const pLower = p.rawName.toLowerCase();
+              return pLower.includes(lower) || lower.includes(pLower)
+                || stems.some(stem => pLower.includes(stem));
+            });
+            if (idx >= 0) {
+              used.add(idx);
+              return { name: (name || '').trim(), amount: parsedAmounts[idx].amount, unit: 'ml' };
+            }
+            return { name: (name || '').trim() };
+          });
+        }
         const ingCount = ingList.length;
         const idealLineH = 52;
         const maxIngBottom = H - 120;
