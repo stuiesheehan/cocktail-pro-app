@@ -23,6 +23,7 @@ import PrepLab from './components/features/PrepLab';
 import MenuBuilder from './components/features/MenuBuilder';
 import CocktailsList from './components/features/CocktailsList';
 import IngredientsList from './components/features/IngredientsList';
+import SplashScreen from './components/SplashScreen';
 
 const CocktailManager = () => {
   // Default data imported from ./data/cocktails and ./data/ingredients
@@ -44,9 +45,13 @@ const CocktailManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
-  const [flavorFilter, setFlavorFilter] = useState(null);
+  const [flavourFilter, setFlavourFilter] = useState(null);
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [selectedCocktail, setSelectedCocktail] = useState(null);
   const [saveStatus, setSaveStatus] = useState('');
+  const [showSplash, setShowSplash] = useState(true);
+  const [appReady, setAppReady] = useState(false);
+  const [venueName] = useState(() => load('venueName_pro', "Stuie's Cocktail Bar"));
 
   // ============================================
   // PREMIUM STATE (TEST MODE ONLY)
@@ -109,6 +114,15 @@ const CocktailManager = () => {
     setTimeout(() => setSaveStatus(''), 3000);
   };
 
+  // Splash screen timer
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAppReady(true);
+      setTimeout(() => setShowSplash(false), 600);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
   // FREE TIER LIMITS imported from ./data/constants
 
   // Save to localStorage
@@ -133,10 +147,16 @@ const CocktailManager = () => {
       const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.ingredients.some(i => i.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesType = filterType === 'all' || c.type === filterType;
       const matchesAvailable = !showAvailableOnly || c.canMake;
-      const matchesFlavor = !flavorFilter || c.flavors?.includes(flavorFilter);
-      return matchesSearch && matchesType && matchesAvailable && matchesFlavor;
+      const matchesFlavour = !flavourFilter || c.flavours?.includes(flavourFilter);
+      let matchesCategory = true;
+      if (categoryFilter === 'classics') matchesCategory = !c.isCustom;
+      else if (categoryFilter === 'creations') matchesCategory = !!c.isCustom;
+      else if (categoryFilter === 'sours') matchesCategory = (c.type || '').includes('Sour') || c.drinkCategory === 'Sours';
+      else if (categoryFilter === 'stirred') matchesCategory = (c.type || '').includes('Spirit-Forward') || c.drinkCategory === 'Stirred & Boozy';
+      else if (categoryFilter === 'long') matchesCategory = (c.type || '').includes('Highball') || c.drinkCategory === 'Long Drinks';
+      return matchesSearch && matchesType && matchesAvailable && matchesFlavour && matchesCategory;
     });
-  }, [cocktails, searchTerm, filterType, showAvailableOnly, flavorFilter]);
+  }, [cocktails, searchTerm, filterType, showAvailableOnly, flavourFilter, categoryFilter]);
 
   const stats = useMemo(() => ({
     total: cocktails.length,
@@ -222,7 +242,7 @@ const CocktailManager = () => {
           abv: parseInt(r.ABV) || 15,
           sellPrice: parseFloat(r.Price) || 12,
           costPerDrink: parseFloat(r.Cost) || 2.5,
-          flavors: (r.Flavors || '').split(',').map(f => f.trim().toLowerCase()).filter(Boolean),
+          flavours: (r.Flavors || '').split(',').map(f => f.trim().toLowerCase()).filter(Boolean),
           dietary: [],
           tags: [],
           canMake: false,
@@ -253,7 +273,7 @@ const CocktailManager = () => {
       case 'speedrail': return <VirtualBar ingredients={ingredients} speedRail={speedRail} setSpeedRail={setSpeedRail} />;
       case 'training': return <TrainingMode cocktails={cocktails} />;
       case 'menu': return <MenuBuilder cocktails={cocktails} favorites={favorites} />;
-      case 'creator': return <RecipeCreator ingredients={ingredients} onSave={handleAddCustomCocktail} onClose={() => setActiveSubTab(null)} />;
+      case 'creator': return <RecipeCreator ingredients={ingredients} onSave={handleAddCustomCocktail} onClose={() => setActiveSubTab(null)} isPremium={isPremium} />;
       case 'party': return <PartyMode cocktails={cocktails} isPremium={isPremium} onShowUpgrade={() => setShowUpgradeModal(true)} />;
       case 'preplab': return <PrepLab isPremium={isPremium} onShowUpgrade={() => setShowUpgradeModal(true)} />;
       default: return null;
@@ -261,7 +281,13 @@ const CocktailManager = () => {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: DARK_BG }}>
+    <>
+    {showSplash && (
+      <div style={{ opacity: appReady ? 0 : 1, transition: 'opacity 0.6s ease-out', pointerEvents: appReady ? 'none' : 'auto' }}>
+        <SplashScreen />
+      </div>
+    )}
+    <div className="min-h-screen" style={{ backgroundColor: DARK_BG, opacity: appReady ? 1 : 0, transition: 'opacity 0.6s ease-in' }}>
       {/* Noise texture */}
       <div className="fixed inset-0 pointer-events-none opacity-[0.02]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }} />
 
@@ -293,7 +319,7 @@ const CocktailManager = () => {
         ) : (
           <>
             {activeTab === 'dashboard' && <Dashboard stats={stats} cocktails={cocktails} filteredCocktails={filteredCocktails} ingredients={ingredients} randomCocktail={randomCocktail} onRefreshRandom={() => setRandomCocktail(getRandomCocktail())} onSelectCocktail={setSelectedCocktail} recentlyMade={recentlyMade} lowStockItems={lowStockItems} favorites={favorites} timers={timers} setTimers={setTimers} sales={sales} isPremium={isPremium} onShowUpgrade={() => setShowUpgradeModal(true)} randomUsesRemaining={randomUsesRemaining} onUseRandom={() => setRandomUsesRemaining(prev => Math.max(0, prev - 1))} />}
-            {activeTab === 'cocktails' && <CocktailsList cocktails={cocktails} filteredCocktails={filteredCocktails} searchTerm={searchTerm} setSearchTerm={setSearchTerm} filterType={filterType} setFilterType={setFilterType} showAvailableOnly={showAvailableOnly} setShowAvailableOnly={setShowAvailableOnly} onSelectCocktail={setSelectedCocktail} favorites={favorites} flavorFilter={flavorFilter} setFlavorFilter={setFlavorFilter} isPremium={isPremium} onShowUpgrade={() => setShowUpgradeModal(true)} freeLimit={FREE_COCKTAIL_LIMIT} />}
+            {activeTab === 'cocktails' && <CocktailsList cocktails={cocktails} filteredCocktails={filteredCocktails} searchTerm={searchTerm} setSearchTerm={setSearchTerm} filterType={filterType} setFilterType={setFilterType} showAvailableOnly={showAvailableOnly} setShowAvailableOnly={setShowAvailableOnly} onSelectCocktail={setSelectedCocktail} favorites={favorites} flavourFilter={flavourFilter} setFlavourFilter={setFlavourFilter} isPremium={isPremium} onShowUpgrade={() => setShowUpgradeModal(true)} freeLimit={FREE_COCKTAIL_LIMIT} categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter} />}
             {activeTab === 'ingredients' && <IngredientsList ingredients={ingredients} toggleIngredientStock={toggleIngredientStock} setIngredients={setIngredients} />}
             {activeTab === 'tools' && (
               <div className="space-y-4 pb-28 p-4">
@@ -327,7 +353,7 @@ const CocktailManager = () => {
                     { id: 'shift', icon: Zap, label: 'Shift Mode', desc: 'Quick service mode', free: false },
                     { id: 'analytics', icon: BarChart3, label: 'Analytics', desc: 'Sales & insights', free: false },
                     { id: 'shopping', icon: ShoppingCart, label: 'Shopping List', desc: 'Par levels & orders', free: true },
-                    { id: 'speedrail', icon: Package, label: 'Speed Rail', desc: 'Organize your well', free: false },
+                    { id: 'speedrail', icon: Package, label: 'Speed Rail', desc: 'Organise your well', free: false },
                     { id: 'menu', icon: QrCode, label: 'Menu Builder', desc: 'Create digital menus', free: false },
                   ].map(tool => {
                     const isLocked = !isPremium && !tool.free;
@@ -365,7 +391,7 @@ const CocktailManager = () => {
       </main>
 
       {/* Cocktail Modal */}
-      {selectedCocktail && <CocktailModal cocktail={selectedCocktail} onClose={() => setSelectedCocktail(null)} ingredients={ingredients} onMakeDrink={handleMakeDrink} onToggleFavorite={toggleFavorite} favorites={favorites} onUpdateCocktail={updateCocktail} />}
+      {selectedCocktail && <CocktailModal cocktail={selectedCocktail} onClose={() => setSelectedCocktail(null)} ingredients={ingredients} onMakeDrink={handleMakeDrink} onToggleFavorite={toggleFavorite} favorites={favorites} onUpdateCocktail={updateCocktail} isPremium={isPremium} venueName={venueName} />}
 
       {/* Import FAB - Premium Only */}
       {isPremium ? (
@@ -417,6 +443,7 @@ const CocktailManager = () => {
         </nav>
       )}
     </div>
+    </>
   );
 };
 

@@ -11,7 +11,7 @@ export const TECHNIQUE_ICONS = {
   'Shake': '🍸', 'Stir': '🥄', 'Build': '🧊', 'Muddle': '🌿', 'Layer': '📊', 'Blend': '🌀'
 };
 
-export const FLAVOR_PROFILES = [
+export const FLAVOUR_PROFILES = [
   { id: 'sweet', label: 'Sweet', icon: '🍯', color: '#F59E0B' },
   { id: 'sour', label: 'Sour', icon: '🍋', color: '#84CC16' },
   { id: 'bitter', label: 'Bitter', icon: '🫒', color: '#78716C' },

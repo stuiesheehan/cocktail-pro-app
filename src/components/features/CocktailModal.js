@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Edit3, Star, X, Clock, ChevronDown, ChevronRight, Minus, Plus, Share2 } from 'lucide-react';
-import { GOLD, TAGS, TECHNIQUE_ICONS, FLAVOR_PROFILES, DIETARY_FLAGS } from '../../data/constants';
-import { FLAVOR_AXES, EXTENDED_ABV_MAP } from '../../data/flavorData';
+import { GOLD, TAGS, TECHNIQUE_ICONS, FLAVOUR_PROFILES, DIETARY_FLAGS } from '../../data/constants';
+import { FLAVOUR_AXES, EXTENDED_ABV_MAP, CLASSIC_FLAVOUR_PROFILES, estimateFlavourProfile } from '../../data/flavourData';
 import { getCocktailImage } from '../../utils/images';
 import { formatCurrency } from '../../utils/formatting';
 import { Card, Badge, SectionHeader, Button } from '../ui';
-import { FlavorRadarSVG } from './RecipeCreator';
+import { FlavourRadarSVG } from './RecipeCreator';
 
 // Parse "60ml tequila, 30ml triple sec, ..." from instructions text
 const parseInstructionSpecs = (instructions) => {
@@ -46,7 +46,7 @@ const parseInstructionAmounts = (instructions) => {
   return results;
 };
 
-const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFavorite, favorites, onUpdateCocktail }) => {
+const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFavorite, favorites, onUpdateCocktail, isPremium, venueName }) => {
   const [batchSize, setBatchSize] = useState(1);
   const [showNotes, setShowNotes] = useState(false);
   const [newNote, setNewNote] = useState('');
@@ -273,10 +273,10 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
         ctx.fillText('Total Volume', leftX, curY);
         ctx.fillText('Strength', leftX + volW + 25, curY);
 
-        // ── Right side: Flavor Radar (centered relative to left content) ──
+        // ── Right side: Flavour Radar (centered relative to left content) ──
         const hasRadar = cocktail.radarScores && Object.values(cocktail.radarScores).some(v => v > 0);
-        const scores = hasRadar ? cocktail.radarScores : { Sweet: 5, Sour: 5, Bitter: 5, Strength: 5, Botanical: 5 };
-        const axes = FLAVOR_AXES;
+        const scores = hasRadar ? cocktail.radarScores : (CLASSIC_FLAVOUR_PROFILES[cocktail.name] || estimateFlavourProfile(cocktail));
+        const axes = FLAVOUR_AXES;
         const n = axes.length;
         const radarR = 200;
         const radarCx = 790;
@@ -290,7 +290,7 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
         ctx.fillStyle = GOLD;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('FLAVOR RADAR', radarCx, radarCy - radarR - 50);
+        ctx.fillText('FLAVOUR RADAR', radarCx, radarCy - radarR - 50);
 
         // Rings
         [0.33, 0.66, 1.0].forEach(r => {
@@ -367,12 +367,13 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
           ctx.fillText(`${scores[axis] || 0}/10`, lx, ly + 22);
         });
 
-        // ── Watermark (bottom-right) ──
-        ctx.font = '300 14px -apple-system, system-ui, sans-serif';
-        ctx.fillStyle = 'rgba(255,255,255,0.2)';
-        ctx.textAlign = 'right';
+        // ── Venue branding (bottom-centre) ──
+        const brandText = `EXCLUSIVELY CRAFTED AT ${(venueName || "Stuie's Cocktail Bar").toUpperCase()} \u00B7 DUBLIN`;
+        ctx.font = '500 14px Georgia, serif';
+        ctx.fillStyle = 'rgba(212, 175, 55, 0.6)';
+        ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
-        ctx.fillText('Shared from Cocktail App', W - 50, H - 45);
+        ctx.fillText(brandText, W / 2, H - 42);
 
         canvas.toBlob(resolve, 'image/png');
       };
@@ -503,25 +504,23 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
             </div>
           </div>
 
-          {/* Flavor Profile */}
-          {cocktail.flavors?.length > 0 && (
+          {/* Flavour Profile */}
+          {cocktail.flavours?.length > 0 && (
             <div className="flex gap-2 flex-wrap">
-              {cocktail.flavors.map(flavorId => {
-                const flavor = FLAVOR_PROFILES.find(f => f.id === flavorId);
-                return flavor && <Badge key={flavorId} color={flavor.color}>{flavor.icon} {flavor.label}</Badge>;
+              {cocktail.flavours.map(flavourId => {
+                const flavour = FLAVOUR_PROFILES.find(f => f.id === flavourId);
+                return flavour && <Badge key={flavourId} color={flavour.color}>{flavour.icon} {flavour.label}</Badge>;
               })}
             </div>
           )}
 
-          {/* Flavor Radar (custom cocktails) */}
-          {cocktail.radarScores && (
-            <Card className="p-4">
-              <SectionHeader>Flavor Radar</SectionHeader>
-              <div className="flex justify-center">
-                <FlavorRadarSVG scores={cocktail.radarScores} size={160} />
-              </div>
-            </Card>
-          )}
+          {/* Flavour Radar */}
+          <Card className="p-4">
+            <SectionHeader>Flavour Radar</SectionHeader>
+            <div className="flex justify-center">
+              <FlavourRadarSVG scores={cocktail.radarScores || CLASSIC_FLAVOUR_PROFILES[cocktail.name] || estimateFlavourProfile(cocktail)} size={160} />
+            </div>
+          </Card>
 
           {/* Dietary Flags */}
           {cocktail.dietary?.length > 0 && (
@@ -570,23 +569,25 @@ const CocktailModal = ({ cocktail, onClose, ingredients, onMakeDrink, onToggleFa
           </div>
 
           {/* Costing */}
-          <Card className="p-4">
-            <SectionHeader>Costing</SectionHeader>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <p className="text-lg font-light" style={{ color: '#EF4444' }}>{formatCurrency(costPerDrink * batchSize)}</p>
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Cost</p>
+          {isPremium && (
+            <Card className="p-4">
+              <SectionHeader>Costing</SectionHeader>
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-lg font-light" style={{ color: '#EF4444' }}>{formatCurrency(costPerDrink * batchSize)}</p>
+                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Cost</p>
+                </div>
+                <div>
+                  <p className="text-lg font-light" style={{ color: '#10B981' }}>{formatCurrency(sellPrice * batchSize)}</p>
+                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Revenue</p>
+                </div>
+                <div>
+                  <p className="text-lg font-light" style={{ color: GOLD }}>{margin}%</p>
+                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Margin</p>
+                </div>
               </div>
-              <div>
-                <p className="text-lg font-light" style={{ color: '#10B981' }}>{formatCurrency(sellPrice * batchSize)}</p>
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Revenue</p>
-              </div>
-              <div>
-                <p className="text-lg font-light" style={{ color: GOLD }}>{margin}%</p>
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Margin</p>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          )}
 
           {/* Staff Notes */}
           <Card className="p-4">

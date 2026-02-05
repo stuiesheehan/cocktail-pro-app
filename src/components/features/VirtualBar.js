@@ -29,7 +29,7 @@ const VirtualBar = ({ ingredients, speedRail, setSpeedRail }) => {
     <div className="space-y-4 pb-28">
       <div className="px-4 pt-4">
         <h2 className="text-2xl font-light tracking-wide" style={{ color: GOLD, fontFamily: "'Playfair Display', Georgia, serif" }}>Speed Rail</h2>
-        <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Organize your well spirits (left to right)</p>
+        <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Organise your well spirits (left to right)</p>
       </div>
 
       {/* Current Rail */}

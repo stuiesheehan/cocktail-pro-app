@@ -1,10 +1,19 @@
 import React, { useState } from 'react';
 import { Search, Star } from 'lucide-react';
-import { GOLD, FLAVOR_PROFILES, TAGS } from '../../data/constants';
+import { GOLD, FLAVOUR_PROFILES, TAGS } from '../../data/constants';
 import { getCocktailImage } from '../../utils/images';
 import { TabButton } from '../ui';
 
-const CocktailsList = ({ cocktails, filteredCocktails, searchTerm, setSearchTerm, filterType, setFilterType, showAvailableOnly, setShowAvailableOnly, onSelectCocktail, favorites, flavorFilter, setFlavorFilter, isPremium, onShowUpgrade, freeLimit }) => {
+const CATEGORY_PILLS = [
+  { id: 'all', label: 'All' },
+  { id: 'classics', label: 'Classics' },
+  { id: 'creations', label: 'User Creations' },
+  { id: 'sours', label: 'Sours' },
+  { id: 'stirred', label: 'Stirred & Boozy' },
+  { id: 'long', label: 'Long Drinks' },
+];
+
+const CocktailsList = ({ cocktails, filteredCocktails, searchTerm, setSearchTerm, filterType, setFilterType, showAvailableOnly, setShowAvailableOnly, onSelectCocktail, favorites, flavourFilter, setFlavourFilter, isPremium, onShowUpgrade, freeLimit, categoryFilter, setCategoryFilter }) => {
   const [showCustomOnly, setShowCustomOnly] = useState(false);
   const types = [...new Set(cocktails.map(c => c.type))];
 
@@ -52,6 +61,26 @@ const CocktailsList = ({ cocktails, filteredCocktails, searchTerm, setSearchTerm
         </div>
       </div>
 
+      {/* Category Pills */}
+      <div className="px-4">
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {CATEGORY_PILLS.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setCategoryFilter(categoryFilter === cat.id ? 'all' : cat.id)}
+              className="px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all"
+              style={{
+                backgroundColor: categoryFilter === cat.id ? `${GOLD}25` : 'rgba(255,255,255,0.05)',
+                border: `1.5px solid ${categoryFilter === cat.id ? GOLD : 'rgba(255,255,255,0.1)'}`,
+                color: categoryFilter === cat.id ? GOLD : 'rgba(255,255,255,0.6)',
+              }}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Filters */}
       <div className="space-y-2 px-4">
         <div className="flex gap-2 overflow-x-auto pb-2">
@@ -68,17 +97,17 @@ const CocktailsList = ({ cocktails, filteredCocktails, searchTerm, setSearchTerm
           ))}
         </div>
 
-        {/* Flavor Filters */}
+        {/* Flavour Filters */}
         <div className="flex gap-2 overflow-x-auto pb-2">
-          {FLAVOR_PROFILES.map(f => (
+          {FLAVOUR_PROFILES.map(f => (
             <button
               key={f.id}
-              onClick={() => setFlavorFilter(flavorFilter === f.id ? null : f.id)}
+              onClick={() => setFlavourFilter(flavourFilter === f.id ? null : f.id)}
               className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all"
               style={{
-                backgroundColor: flavorFilter === f.id ? `${f.color}20` : 'rgba(255,255,255,0.05)',
-                border: `1px solid ${flavorFilter === f.id ? `${f.color}60` : 'rgba(255,255,255,0.1)'}`,
-                color: flavorFilter === f.id ? f.color : 'rgba(255,255,255,0.6)'
+                backgroundColor: flavourFilter === f.id ? `${f.color}20` : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${flavourFilter === f.id ? `${f.color}60` : 'rgba(255,255,255,0.1)'}`,
+                color: flavourFilter === f.id ? f.color : 'rgba(255,255,255,0.6)'
               }}
             >
               {f.icon} {f.label}

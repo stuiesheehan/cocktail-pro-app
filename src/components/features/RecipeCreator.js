@@ -2,27 +2,27 @@ import React, { useState, useMemo, useRef } from 'react';
 import { X, Camera, Search, ChevronDown } from 'lucide-react';
 import { GOLD, DARK_BG, TECHNIQUE_ICONS } from '../../data/constants';
 import {
-  FLAVOR_AXES, BITTER_INGREDIENTS, BOTANICAL_INGREDIENTS,
+  FLAVOUR_AXES, BITTER_INGREDIENTS, BOTANICAL_INGREDIENTS,
   EXTENDED_ABV_MAP, CLASSIC_COCKTAILS, BARTENDER_COMMENTS,
-} from '../../data/flavorData';
+} from '../../data/flavourData';
 import { NAMING_DATA } from '../../data/namingEngine';
 import { Button } from '../ui';
 
-// ── FlavorRadar SVG ──────────────────────────────────────────────
-export const FlavorRadarSVG = ({ scores, size = 100 }) => {
+// ── FlavourRadar SVG ─────────────────────────────────────────────
+export const FlavourRadarSVG = ({ scores, size = 100 }) => {
   const cx = size / 2;
   const cy = size / 2;
   const radius = size * 0.38;
-  const n = FLAVOR_AXES.length;
+  const n = FLAVOUR_AXES.length;
   const angleStep = (2 * Math.PI) / n;
   const startAngle = -Math.PI / 2;
 
-  const axisPoints = FLAVOR_AXES.map((_, i) => {
+  const axisPoints = FLAVOUR_AXES.map((_, i) => {
     const angle = startAngle + i * angleStep;
     return { x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) };
   });
 
-  const dataPoints = FLAVOR_AXES.map((axis, i) => {
+  const dataPoints = FLAVOUR_AXES.map((axis, i) => {
     const value = (scores[axis] || 0) / 10;
     const angle = startAngle + i * angleStep;
     return { x: cx + radius * value * Math.cos(angle), y: cy + radius * value * Math.sin(angle) };
@@ -34,7 +34,7 @@ export const FlavorRadarSVG = ({ scores, size = 100 }) => {
   return (
     <svg width={size} height={size} viewBox={`${-16} ${-16} ${size + 32} ${size + 32}`}>
       {rings.map((r, ri) => {
-        const ringPoints = FLAVOR_AXES.map((_, i) => {
+        const ringPoints = FLAVOUR_AXES.map((_, i) => {
           const angle = startAngle + i * angleStep;
           return `${cx + radius * r * Math.cos(angle)},${cy + radius * r * Math.sin(angle)}`;
         }).join(' ');
@@ -47,7 +47,7 @@ export const FlavorRadarSVG = ({ scores, size = 100 }) => {
       {dataPoints.map((pt, i) => (
         <circle key={i} cx={pt.x} cy={pt.y} r="2.5" fill={GOLD} />
       ))}
-      {FLAVOR_AXES.map((axis, i) => {
+      {FLAVOUR_AXES.map((axis, i) => {
         const angle = startAngle + i * angleStep;
         const labelRadius = radius + 14;
         const lx = cx + labelRadius * Math.cos(angle);
@@ -63,7 +63,7 @@ export const FlavorRadarSVG = ({ scores, size = 100 }) => {
 };
 
 // ── RecipeCreator ────────────────────────────────────────────────
-const RecipeCreator = ({ ingredients, onSave, onClose }) => {
+const RecipeCreator = ({ ingredients, onSave, onClose, isPremium }) => {
   const [step, setStep] = useState(0);
   const [photoData, setPhotoData] = useState(null);
   const [ingredientSearch, setIngredientSearch] = useState('');
@@ -133,6 +133,7 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
     technique: 'Shake',
     glass: 'Coupe Glass 🍸',
     name: '',
+    drinkCategory: 'Sours',
   });
 
   // ── Dynamic ingredient sourcing from inventory ─────────────
@@ -223,8 +224,8 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
     };
   }, [recipe, spiritOptions, ingredients]);
 
-  // ── Flavor Radar scores (5-axis, 0-10) ────────────────────
-  const flavorRadar = useMemo(() => {
+  // ── Flavour Radar scores (5-axis, 0-10) ────────────────────
+  const flavourRadar = useMemo(() => {
     const sweetMl = recipe.sweeteners.reduce((sum, s) => sum + s.amount, 0);
     const sweetScore = Math.min(10, (sweetMl / 20) * 10);
 
@@ -282,9 +283,9 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
 
   // ── Bartender comment (first matching rule) ────────────────
   const bartenderComment = useMemo(() => {
-    const match = BARTENDER_COMMENTS.find(r => r.test(flavorRadar));
+    const match = BARTENDER_COMMENTS.find(r => r.test(flavourRadar));
     return match ? match.comment : '';
-  }, [flavorRadar]);
+  }, [flavourRadar]);
 
   // ── Smart suggestions (balance tips + classic matching) ────
   const smartSuggestions = useMemo(() => {
@@ -447,12 +448,12 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
     recipe.sweeteners.forEach(s => specParts.push(`${s.amount}ml ${s.name}`));
     recipe.mixers.forEach(m => specParts.push(`${m.amount}ml ${m.name}`));
 
-    const flavorProfile = [];
-    if (calculations.abv > 25) flavorProfile.push('boozy');
-    if (recipe.acids.length > 0) flavorProfile.push('sour');
-    if (recipe.sweeteners.length > 0) flavorProfile.push('sweet');
-    if (flavorRadar.Bitter > 3) flavorProfile.push('bitter');
-    if (flavorRadar.Botanical > 3) flavorProfile.push('herbal');
+    const flavourProfile = [];
+    if (calculations.abv > 25) flavourProfile.push('boozy');
+    if (recipe.acids.length > 0) flavourProfile.push('sour');
+    if (recipe.sweeteners.length > 0) flavourProfile.push('sweet');
+    if (flavourRadar.Bitter > 3) flavourProfile.push('bitter');
+    if (flavourRadar.Botanical > 3) flavourProfile.push('herbal');
 
     const ingredientDetails = [
       ...recipe.baseSpirits.map(bs => ({ name: bs.name, amount: bs.amount, unit: 'ml' })),
@@ -474,11 +475,12 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
       abv: calculations.abv,
       costPerDrink: calculations.costPerDrink,
       sellPrice: calculations.suggestedPrice,
-      flavors: flavorProfile,
+      flavours: flavourProfile,
       dietary: ['vegan', 'gluten_free'],
       tags: ['signature'],
       isCustom: true,
-      radarScores: { ...flavorRadar },
+      drinkCategory: recipe.drinkCategory,
+      radarScores: { ...flavourRadar },
       ...(photoData ? { image: photoData } : {}),
     };
     onSave(finalRecipe);
@@ -965,14 +967,35 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
               />
             </div>
 
+            {/* Drink Category */}
+            <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <p className="text-xs uppercase tracking-wider mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>Drink Category</p>
+              <div className="flex flex-wrap gap-2">
+                {['Sours', 'Stirred & Boozy', 'Long Drinks'].map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setRecipe(prev => ({ ...prev, drinkCategory: cat }))}
+                    className="px-4 py-2 rounded-full text-sm font-medium transition-all active:scale-95"
+                    style={{
+                      backgroundColor: recipe.drinkCategory === cat ? `${GOLD}30` : 'rgba(255,255,255,0.05)',
+                      border: `1.5px solid ${recipe.drinkCategory === cat ? GOLD : 'rgba(255,255,255,0.1)'}`,
+                      color: recipe.drinkCategory === cat ? GOLD : 'rgba(255,255,255,0.6)',
+                    }}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Final summary card */}
             <div className="p-4 rounded-xl" style={{ backgroundColor: `${GOLD}10`, border: `1px solid ${GOLD}30` }}>
               <h4 className="text-lg font-light mb-4" style={{ color: GOLD }}>{recipe.name || 'Your Creation'}</h4>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><span className="text-white/40">Volume:</span><span className="text-white ml-2">{calculations.totalVolume}ml</span></div>
                 <div><span className="text-white/40">ABV:</span><span className="text-white ml-2">{calculations.abv}%</span></div>
-                <div><span className="text-white/40">Cost:</span><span className="text-white ml-2">&euro;{calculations.costPerDrink}</span></div>
-                <div><span className="text-white/40">Price:</span><span className="text-white ml-2" style={{ color: GOLD }}>&euro;{calculations.suggestedPrice}</span></div>
+                {isPremium && <div><span className="text-white/40">Cost:</span><span className="text-white ml-2">&euro;{calculations.costPerDrink}</span></div>}
+                {isPremium && <div><span className="text-white/40">Price:</span><span className="text-white ml-2" style={{ color: GOLD }}>&euro;{calculations.suggestedPrice}</span></div>}
               </div>
             </div>
           </div>
@@ -982,10 +1005,10 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
       {/* ── Bottom stats bar ─────────────────────────────────── */}
       <div className="p-4 border-t" style={{ borderColor: 'rgba(255,255,255,0.1)', backgroundColor: 'rgba(0,0,0,0.5)' }}>
 
-        {/* Flavor Radar + Stats row */}
+        {/* Flavour Radar + Stats row */}
         <div className="flex items-center gap-3 mb-3">
-          <FlavorRadarSVG scores={flavorRadar} size={90} />
-          <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-1">
+          <FlavourRadarSVG scores={flavourRadar} size={90} />
+          <div className={`flex-1 grid ${isPremium ? 'grid-cols-2' : 'grid-cols-2'} gap-x-4 gap-y-1`}>
             <div className="text-center">
               <span className="text-xs text-white/40 block">Volume</span>
               <span className="text-sm font-bold text-white">{calculations.totalVolume}ml</span>
@@ -994,14 +1017,18 @@ const RecipeCreator = ({ ingredients, onSave, onClose }) => {
               <span className="text-xs text-white/40 block">ABV</span>
               <span className="text-sm font-bold" style={{ color: calculations.abv > 25 ? '#EF4444' : GOLD }}>{calculations.abv}%</span>
             </div>
-            <div className="text-center">
-              <span className="text-xs text-white/40 block">Cost</span>
-              <span className="text-sm font-bold text-white">&euro;{calculations.costPerDrink}</span>
-            </div>
-            <div className="text-center">
-              <span className="text-xs text-white/40 block">Price</span>
-              <span className="text-sm font-bold" style={{ color: GOLD }}>&euro;{calculations.suggestedPrice}</span>
-            </div>
+            {isPremium && (
+              <div className="text-center">
+                <span className="text-xs text-white/40 block">Cost</span>
+                <span className="text-sm font-bold text-white">&euro;{calculations.costPerDrink}</span>
+              </div>
+            )}
+            {isPremium && (
+              <div className="text-center">
+                <span className="text-xs text-white/40 block">Price</span>
+                <span className="text-sm font-bold" style={{ color: GOLD }}>&euro;{calculations.suggestedPrice}</span>
+              </div>
+            )}
           </div>
         </div>
 
