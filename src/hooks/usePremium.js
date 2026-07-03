@@ -3,7 +3,14 @@ import { FREE_RANDOM_USES } from '../data/constants';
 
 export const usePremium = () => {
   const [isPremium, setIsPremium] = useState(() => {
-    try { return localStorage.getItem('isPremium') === 'true'; } catch { return false; }
+    try {
+      // Migrate from old key name used in earlier builds
+      if (localStorage.getItem('isPremium_test') === 'true') {
+        localStorage.setItem('isPremium', 'true');
+        localStorage.removeItem('isPremium_test');
+      }
+      return localStorage.getItem('isPremium') === 'true';
+    } catch { return false; }
   });
 
   const [randomUsesRemaining, setRandomUsesRemaining] = useState(() => {
