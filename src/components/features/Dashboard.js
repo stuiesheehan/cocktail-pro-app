@@ -10,7 +10,7 @@ import TimerWidget from './TimerWidget';
 const Dashboard = ({
   stats, cocktails, ingredients, randomCocktail, onRefreshRandom,
   onSelectCocktail, recentlyMade, lowStockItems, favorites, timers, setTimers, sales,
-  isPremium, onShowUpgrade, randomUsesRemaining, onUseRandom
+  isPremium, onShowUpgrade, randomUsesRemaining, onUseRandom, venueName
 }) => {
   const availableCocktails = cocktails.filter(c => c.canMake);
   const favoriteCocktails = cocktails.filter(c => favorites.includes(c.name));
@@ -35,12 +35,18 @@ const Dashboard = ({
   return (
     <div className="space-y-6 pb-28">
       {/* Hero */}
-      <div className="relative h-56 overflow-hidden rounded-b-3xl mx-2">
-        <img src="https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=1200&q=80" alt="Bar" className="w-full h-full object-cover" />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, #0a0a0a 0%, rgba(10,10,10,0.8) 50%, rgba(10,10,10,0.4) 100%)' }} />
+      <div className="relative h-56 overflow-hidden rounded-b-3xl mx-2" style={{ background: 'linear-gradient(160deg, #1a1008 0%, #0d0d0d 40%, #0a0f1a 70%, #0a0a0a 100%)' }}>
+        {/* Decorative bokeh circles */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute w-48 h-48 rounded-full opacity-10" style={{ background: `radial-gradient(circle, ${GOLD}, transparent)`, top: '-20%', right: '-10%' }} />
+          <div className="absolute w-32 h-32 rounded-full opacity-5" style={{ background: `radial-gradient(circle, ${GOLD}, transparent)`, bottom: '10%', left: '-5%' }} />
+        </div>
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
-          <h1 className="text-3xl font-light tracking-widest mb-2" style={{ color: GOLD, fontFamily: "'Playfair Display', Georgia, serif" }}>THE BAR</h1>
-          <p className="text-xs uppercase tracking-[0.3em]" style={{ color: 'rgba(255,255,255,0.6)' }}>Professional Cocktail Management</p>
+          <div className="text-3xl mb-2" style={{ filter: `drop-shadow(0 0 12px ${GOLD}60)` }}>🍸</div>
+          <h1 className="text-3xl font-light tracking-widest mb-1" style={{ color: GOLD, fontFamily: "'Playfair Display', Georgia, serif" }}>
+            {venueName || 'THE BAR'}
+          </h1>
+          <p className="text-xs uppercase tracking-[0.3em]" style={{ color: 'rgba(255,255,255,0.5)' }}>Professional Cocktail Management</p>
           {isPremium && (
             <span className="mt-2 px-3 py-1 rounded-full text-xs" style={{ backgroundColor: `${GOLD}20`, border: `1px solid ${GOLD}40`, color: GOLD }}>
               👑 Premium
